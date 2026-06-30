@@ -1,0 +1,6 @@
+{
+  "name": "TPF Cinemas",
+  "description": "Filmmaker-first streaming platform by Tilak Popat Films. Spotlight on emerging and independent Indian cinema.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
