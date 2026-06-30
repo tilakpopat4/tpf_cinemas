@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Heart, Play, Trash2, Clock, CheckCircle2, Sparkles, Tv, ShieldCheck } from 'lucide-react';
+import { User, Heart, Play, Trash2, Clock, CheckCircle2, Sparkles, Tv, ShieldCheck, LogOut, Cloud, RefreshCw } from 'lucide-react';
 import { Film, UserProfile } from '../types';
 
 interface ProfilePageProps {
@@ -9,6 +9,10 @@ interface ProfilePageProps {
   onRemoveFromWatchlist: (filmId: string) => void;
   onUpdateQuality: (quality: string) => void;
   selectedQuality: string;
+  firebaseUser: any; // Firebase user object
+  onSignInWithGoogle: () => void;
+  onSignOut: () => void;
+  isSyncing: boolean;
 }
 
 export default function ProfilePage({ 
@@ -17,7 +21,11 @@ export default function ProfilePage({
   onPlay, 
   onRemoveFromWatchlist, 
   onUpdateQuality,
-  selectedQuality
+  selectedQuality,
+  firebaseUser,
+  onSignInWithGoogle,
+  onSignOut,
+  isSyncing
 }: ProfilePageProps) {
   
   // High-end consumer quality presets matching professional OTT streaming platforms
@@ -36,35 +44,99 @@ export default function ProfilePage({
       {/* Upper Grid: User Header & Quality Settings */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* User Card */}
+        {/* User Card with Google Sign-In support */}
         <div className="glass-panel p-6 sm:p-8 rounded-2xl flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center border border-brand-gold/25 text-2xl font-serif font-bold">
-                {profile.name.charAt(0)}
-              </div>
-              <div>
-                <h2 className="text-xl font-serif font-bold text-white">{profile.name}</h2>
-                <p className="text-xs text-white/50">{profile.email}</p>
+              {firebaseUser?.photoURL ? (
+                <img 
+                  src={firebaseUser.photoURL} 
+                  alt={profile.name} 
+                  className="w-16 h-16 rounded-full border-2 border-brand-gold object-cover shadow-md"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center border border-brand-gold/25 text-2xl font-serif font-bold">
+                  {profile.name.charAt(0)}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-serif font-bold text-white truncate">{profile.name}</h2>
+                <p className="text-xs text-white/50 truncate">{profile.email}</p>
               </div>
             </div>
 
-            <div className="space-y-2 border-t border-white/5 pt-4">
+            <div className="space-y-2.5 border-t border-white/5 pt-4">
               <div className="flex justify-between text-xs">
                 <span className="text-white/40">Status:</span>
-                <span className="text-brand-gold font-bold font-mono">ACTIVE VIEWER</span>
+                {firebaseUser ? (
+                  <span className="text-emerald-400 font-bold font-mono flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    GOOGLE SECURED
+                  </span>
+                ) : (
+                  <span className="text-brand-gold font-bold font-mono">LOCAL VIEWER</span>
+                )}
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-white/40">Joined:</span>
                 <span className="text-white/70 font-mono">{new Date(profile.joinedDate).toLocaleDateString()}</span>
               </div>
+              {firebaseUser && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/40">Sync Status:</span>
+                  <span className="text-white/70 font-mono flex items-center gap-1">
+                    {isSyncing ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 text-brand-gold animate-spin" />
+                        <span>Syncing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-3 h-3 text-emerald-400" />
+                        <span>Cloud Saved</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/5 text-center space-y-1.5">
-            <ShieldCheck className="w-6 h-6 text-brand-gold mx-auto" />
-            <h4 className="text-xs font-mono font-bold text-white uppercase">Cinephile Account Verified</h4>
-            <p className="text-[10px] text-white/40 leading-normal">Full curated library access is standard for all registered members.</p>
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            {firebaseUser ? (
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center space-y-1">
+                  <Cloud className="w-5 h-5 text-emerald-400 mx-auto" />
+                  <h4 className="text-[11px] font-mono font-bold text-emerald-400 uppercase">Cloud Sync Enabled</h4>
+                  <p className="text-[10px] text-white/40 leading-normal font-light">Your screening feed and watchlist are saved continuously to your Google Account.</p>
+                </div>
+                <button
+                  onClick={onSignOut}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-brand-red/10 border border-white/10 hover:border-brand-red/30 text-white/80 hover:text-brand-red font-mono text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Disconnect Account
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-brand-gold/5 border border-brand-gold/15 text-center space-y-1">
+                  <ShieldCheck className="w-5 h-5 text-brand-gold mx-auto" />
+                  <h4 className="text-[11px] font-mono font-bold text-brand-gold uppercase">Cloud Storage Available</h4>
+                  <p className="text-[10px] text-white/40 leading-normal font-light">Connect your Google Account to synchronize your curated watchlist and never lose progress.</p>
+                </div>
+                <button
+                  onClick={onSignInWithGoogle}
+                  className="w-full flex items-center justify-center gap-2.5 py-3 bg-brand-gold hover:bg-brand-gold/90 text-[#0D0D0D] font-mono font-bold text-xs uppercase tracking-wider rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-lg shadow-brand-gold/15"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.53-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 5.466 1 0 6.466 0 13.24S5.466 25.48 12.24 25.48c7.073 0 11.79-4.974 11.79-12 0-.814-.08-1.432-.191-2.195H12.24z"/>
+                  </svg>
+                  Sign In with Google
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

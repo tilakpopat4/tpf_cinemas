@@ -239,6 +239,19 @@ export const INITIAL_FILMS: Film[] = [
 
 export const MOCK_SUBMISSIONS: Submission[] = [
   {
+    id: 'sub-sandbox-demo',
+    filmTitle: 'The Lost Script',
+    synopsis: 'An aging screenwriter in Varanasi discovers a forgotten manuscript that predicted every event in his own life, leading to a surreal search for the manuscript\'s true author.',
+    directorName: 'Tilak Popat',
+    duration: '22 mins',
+    language: 'Hindi',
+    genre: 'Drama',
+    videoLink: 'https://youtube.com/watch?v=demo',
+    email: 'tilakpopat2007@gmail.com',
+    status: 'pending',
+    submittedAt: '2026-06-29T10:00:00Z'
+  },
+  {
     id: 'sub-1',
     filmTitle: 'The Last Loom',
     synopsis: 'A heartfelt portrait of an elderly weaver in Varanasi who refuses to upgrade to power looms, dedicating his remaining days to weaving a single, final masterpiece saree by hand.',

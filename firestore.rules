@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.name is string && data.name.size() <= 128 &&
+             data.joinedDate is string && data.joinedDate.size() <= 50 &&
+             data.isPremium is bool &&
+             data.watchlistIds is list && data.watchlistIds.size() <= 100 &&
+             data.watchHistory is list && data.watchHistory.size() <= 100;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && 
+                       isValidId(userId) && 
+                       isValidUser(incoming()) && 
+                       incoming().uid == request.auth.uid &&
+                       incoming().keys().hasAll(['uid', 'email', 'name', 'joinedDate', 'isPremium', 'watchlistIds', 'watchHistory', 'updatedAt']) && 
+                       incoming().keys().size() == 8 &&
+                       incoming().updatedAt == request.time;
+      
+      allow update: if isOwner(userId) && 
+                       isValidId(userId) && 
+                       isValidUser(incoming()) && 
+                       incoming().uid == request.auth.uid &&
+                       incoming().joinedDate == existing().joinedDate &&
+                       incoming().keys().hasAll(['uid', 'email', 'name', 'joinedDate', 'isPremium', 'watchlistIds', 'watchHistory', 'updatedAt']) && 
+                       incoming().keys().size() == 8 &&
+                       incoming().updatedAt == request.time && (
+                         incoming().diff(existing()).affectedKeys().hasAny(['name', 'email', 'isPremium', 'watchlistIds', 'watchHistory', 'updatedAt'])
+                       );
+      
+      allow delete: if isOwner(userId);
+    }
+  }
+}

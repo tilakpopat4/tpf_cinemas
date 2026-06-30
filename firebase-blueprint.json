@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents an authenticated user, storing their name, email, profile preferences, and watchlist.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier matching the Firebase Auth UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "User's display name from Google Sign-In or profile."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's verified email address."
+        },
+        "joinedDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp representing when the user first signed in."
+        },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Whether the user has premium status."
+        },
+        "watchlistIds": {
+          "type": "array",
+          "description": "List of film IDs in the user's watchlist."
+        },
+        "watchHistory": {
+          "type": "array",
+          "description": "List of watched films with their relative playback progress and last watch timestamps."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp or server timestamp representing when the user record was last modified."
+        }
+      },
+      "required": ["uid", "email", "name", "joinedDate", "isPremium", "watchlistIds", "watchHistory"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "#/entities/User",
+      "description": "User documents keyed by Auth UID."
+    }
+  }
+}

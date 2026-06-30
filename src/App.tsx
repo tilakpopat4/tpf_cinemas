@@ -14,6 +14,15 @@ import { Film, Submission, UserProfile } from './types';
 import { INITIAL_FILMS, MOCK_SUBMISSIONS } from './data/mockFilms';
 import { Sparkles, CreditCard, ShieldCheck, X, Check, Heart, Trophy, Globe, Lock, RefreshCw, ArrowLeft, ArrowRight, Key, ShieldAlert } from 'lucide-react';
 
+import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
+import { auth, googleProvider } from './firebase';
+import { 
+  getFirestoreUserProfile, 
+  saveFirestoreUserProfile, 
+  updateFirestoreWatchlist, 
+  updateFirestoreWatchHistory 
+} from './lib/firestoreService';
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [films, setFilms] = useState<Film[]>(INITIAL_FILMS);
@@ -38,6 +47,9 @@ export default function App() {
     ]
   });
 
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
   // Keep a local storage sync for session persistence if the user reloads the frame!
   useEffect(() => {
     const savedFilms = localStorage.getItem('tpf_films');
@@ -49,7 +61,121 @@ export default function App() {
     if (savedSubs) setSubmissions(JSON.parse(savedSubs));
     if (savedProfile) setUserProfile(JSON.parse(savedProfile));
     if (savedQuality) setSelectedQuality(savedQuality);
+
+    // Initial routing based on pathname
+    const path = window.location.pathname;
+    const initialTab = path.slice(1) || 'home';
+    const validTabs = ['home', 'browse', 'hub', 'profile', 'about', 'admin'];
+    if (validTabs.includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
   }, []);
+
+  // Synchronize activeTab with the window URL pathname
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const expectedPath = activeTab === 'home' ? '/' : `/${activeTab}`;
+    if (currentPath !== expectedPath) {
+      window.history.pushState({ tab: activeTab }, '', expectedPath);
+    }
+  }, [activeTab]);
+
+  // Handle back/forward browser navigation
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.tab) {
+        setActiveTab(event.state.tab);
+      } else {
+        const path = window.location.pathname;
+        const tab = path.slice(1) || 'home';
+        setActiveTab(tab);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Listen to Auth State Changes and sync with Firestore
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setFirebaseUser(user);
+        setIsSyncing(true);
+        try {
+          const dbProfile = await getFirestoreUserProfile(user.uid);
+          if (dbProfile) {
+            setUserProfile(dbProfile);
+            localStorage.setItem('tpf_profile', JSON.stringify(dbProfile));
+          } else {
+            // New user signed in with Google
+            const currentLocalProfileString = localStorage.getItem('tpf_profile');
+            let initialWatchlist: string[] = ['film-1', 'film-3'];
+            let initialHistory: any[] = [
+              { filmId: 'film-1', watchedAt: '2026-06-29T18:30:00Z', progressPercent: 85 },
+              { filmId: 'film-3', watchedAt: '2026-06-30T10:15:00Z', progressPercent: 40 },
+            ];
+            
+            if (currentLocalProfileString) {
+              try {
+                const parsed = JSON.parse(currentLocalProfileString);
+                if (Array.isArray(parsed.watchlistIds)) initialWatchlist = parsed.watchlistIds;
+                if (Array.isArray(parsed.watchHistory)) initialHistory = parsed.watchHistory;
+              } catch (e) {
+                console.error(e);
+              }
+            }
+
+            const newProfile: UserProfile = {
+              name: user.displayName || 'Google Viewer',
+              email: user.email || 'viewer@gmail.com',
+              joinedDate: new Date().toISOString(),
+              isPremium: false,
+              watchlistIds: initialWatchlist,
+              watchHistory: initialHistory
+            };
+
+            await saveFirestoreUserProfile(user.uid, newProfile);
+            setUserProfile(newProfile);
+            localStorage.setItem('tpf_profile', JSON.stringify(newProfile));
+          }
+        } catch (error) {
+          console.error('Error syncing user profile:', error);
+        } finally {
+          setIsSyncing(false);
+        }
+      } else {
+        setFirebaseUser(null);
+        const savedProfile = localStorage.getItem('tpf_profile');
+        if (savedProfile) {
+          setUserProfile(JSON.parse(savedProfile));
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignInWithGoogle = async () => {
+    setIsSyncing(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error('Google Sign-In failed:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setIsSyncing(true);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const saveToLocalStorage = (newFilms: Film[], newSubs: Submission[], newProfile: UserProfile, newQuality: string) => {
     localStorage.setItem('tpf_films', JSON.stringify(newFilms));
@@ -102,6 +228,13 @@ export default function App() {
     setSelectedFilm(film);
 
     saveToLocalStorage(updatedFilms, submissions, updatedProfile, selectedQuality);
+
+    if (auth.currentUser) {
+      setIsSyncing(true);
+      updateFirestoreWatchHistory(auth.currentUser.uid, updatedHistory)
+        .catch(console.error)
+        .finally(() => setIsSyncing(false));
+    }
   };
 
   // Toggle Watchlist
@@ -122,16 +255,31 @@ export default function App() {
 
     setUserProfile(updatedProfile);
     saveToLocalStorage(films, submissions, updatedProfile, selectedQuality);
+
+    if (auth.currentUser) {
+      setIsSyncing(true);
+      updateFirestoreWatchlist(auth.currentUser.uid, updatedIds)
+        .catch(console.error)
+        .finally(() => setIsSyncing(false));
+    }
   };
 
   // Remove from watchlist
   const handleRemoveFromWatchlist = (filmId: string) => {
+    const updatedIds = userProfile.watchlistIds.filter(id => id !== filmId);
     const updatedProfile = {
       ...userProfile,
-      watchlistIds: userProfile.watchlistIds.filter(id => id !== filmId)
+      watchlistIds: updatedIds
     };
     setUserProfile(updatedProfile);
     saveToLocalStorage(films, submissions, updatedProfile, selectedQuality);
+
+    if (auth.currentUser) {
+      setIsSyncing(true);
+      updateFirestoreWatchlist(auth.currentUser.uid, updatedIds)
+        .catch(console.error)
+        .finally(() => setIsSyncing(false));
+    }
   };
 
   // Like / Appreciate film
@@ -344,6 +492,10 @@ export default function App() {
               onRemoveFromWatchlist={handleRemoveFromWatchlist}
               onUpdateQuality={handleUpdateQuality}
               selectedQuality={selectedQuality}
+              firebaseUser={firebaseUser}
+              onSignInWithGoogle={handleSignInWithGoogle}
+              onSignOut={handleSignOut}
+              isSyncing={isSyncing}
             />
           )}
 

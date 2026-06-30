@@ -32,7 +32,6 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
   // Simulated Email & SMTP State
-  const [localSubmissions, setLocalSubmissions] = useState<Submission[]>([]);
   const [simulatedEmails, setSimulatedEmails] = useState<SimulatedEmail[]>([]);
   const [activeEmail, setActiveEmail] = useState<SimulatedEmail | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -45,34 +44,15 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
 
   const prevSubsRef = useRef<Submission[]>([]);
 
-  // Sync localSubmissions with mySubmissions or inject a playground sandbox film if empty
+  // Track status changes in mySubmissions to trigger realistic SMTP emails
   useEffect(() => {
-    if (mySubmissions.length > 0) {
-      setLocalSubmissions(mySubmissions);
-    } else {
-      const DEMO_SANDBOX_SUBMISSION: Submission = {
-        id: 'sub-sandbox-demo',
-        filmTitle: 'The Lost Script',
-        synopsis: 'An aging screenwriter in Varanasi discovers a forgotten manuscript that predicted every event in his own life, leading to a surreal search for the manuscript\'s true author.',
-        directorName: 'Tilak Popat',
-        duration: '22 mins',
-        language: 'Hindi',
-        genre: 'Drama',
-        videoLink: 'https://youtube.com/watch?v=demo',
-        email: 'tilakpopat2007@gmail.com',
-        status: 'pending',
-        submittedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-      };
-      setLocalSubmissions([DEMO_SANDBOX_SUBMISSION]);
+    if (mySubmissions.length === 0) {
+      prevSubsRef.current = [];
+      return;
     }
-  }, [mySubmissions]);
-
-  // Track status changes in localSubmissions to trigger realistic SMTP emails
-  useEffect(() => {
-    if (localSubmissions.length === 0) return;
 
     if (prevSubsRef.current.length > 0) {
-      localSubmissions.forEach(curr => {
+      mySubmissions.forEach(curr => {
         const prev = prevSubsRef.current.find(p => p.id === curr.id);
         if (prev && prev.status !== curr.status) {
           const newEmail: SimulatedEmail = {
@@ -109,8 +89,8 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
     }
 
     // Auto welcome email when a NEW film is submitted
-    if (localSubmissions.length > prevSubsRef.current.length && prevSubsRef.current.length > 0) {
-      const addedSub = localSubmissions.find(curr => !prevSubsRef.current.some(p => p.id === curr.id));
+    if (mySubmissions.length > prevSubsRef.current.length && prevSubsRef.current.length > 0) {
+      const addedSub = mySubmissions.find(curr => !prevSubsRef.current.some(p => p.id === curr.id));
       if (addedSub && addedSub.id !== 'sub-sandbox-demo') {
         const welcomeEmail: SimulatedEmail = {
           id: `email-recv-${Date.now()}`,
@@ -135,27 +115,8 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
       }
     }
 
-    prevSubsRef.current = localSubmissions;
-  }, [localSubmissions]);
-
-  // Simulated status toggler for testing
-  const handleSimulateStatusChange = (id: string, newStatus: 'approved' | 'rejected') => {
-    const feedbacks = {
-      approved: 'Your film has been approved for full 4K screening! Excellent cinematographic language, rich emotional texture, and superb framing.',
-      rejected: 'The narrative pacing in the second act needs tightening to maintain tension, but your cinematic vision is outstanding. Please revise and resubmit.'
-    };
-
-    setLocalSubmissions(prev => prev.map(s => {
-      if (s.id === id) {
-        return {
-          ...s,
-          status: newStatus,
-          reviewFeedback: feedbacks[newStatus]
-        };
-      }
-      return s;
-    }));
-  };
+    prevSubsRef.current = mySubmissions;
+  }, [mySubmissions]);
 
   // Accordion state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -568,11 +529,11 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
               <div className="space-y-4 animate-fade-in">
                 <h4 className="text-xs font-mono font-bold text-white/50 uppercase tracking-wider flex items-center gap-2">
                   <FileText className="w-4 h-4 text-brand-gold" />
-                  Screener Progress ({localSubmissions.length})
+                  Screener Progress ({mySubmissions.length})
                 </h4>
 
                 <div className="space-y-3 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
-                  {localSubmissions.map((sub) => (
+                  {mySubmissions.map((sub) => (
                     <div
                       key={sub.id}
                       className="p-3.5 bg-white/[0.02] rounded-xl border border-white/5 space-y-2 text-xs relative group/sub"
@@ -614,29 +575,15 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
                         </div>
                       )}
 
-                      {/* Interactive SMTP simulation controls */}
-                      <div className="mt-3.5 pt-3 border-t border-white/5 space-y-2 bg-black/15 p-2 rounded-lg">
-                        <div className="flex items-center justify-between text-[9px] font-mono text-white/40">
-                          <span>🧪 SIMULATE EDITORIAL DECISION:</span>
+                      {/* Informational guide on Review Desk testing */}
+                      <div className="mt-3.5 pt-3 border-t border-white/5 space-y-1.5 bg-brand-gold/[0.02] p-2.5 rounded-lg border border-brand-gold/10">
+                        <div className="flex items-center gap-1.5 text-[9px] font-mono text-brand-gold font-bold">
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                          <span>TESTING EDITORIAL DECISIONS:</span>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSimulateStatusChange(sub.id, 'approved')}
-                            disabled={sub.status === 'approved'}
-                            className="flex-1 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 hover:text-emerald-400 border border-emerald-500/20 text-[9.5px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSimulateStatusChange(sub.id, 'rejected')}
-                            disabled={sub.status === 'rejected'}
-                            className="flex-1 py-1.5 rounded bg-brand-red/10 hover:bg-brand-red/20 text-brand-red hover:text-brand-red/40 border border-brand-red/20 text-[9.5px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            Reject
-                          </button>
-                        </div>
+                        <p className="text-[10px] text-white/50 leading-relaxed font-light">
+                          To approve/reject this submission, navigate to the <strong className="text-brand-gold">Review Desk Dashboard</strong> in the top navigation bar. Unlock it using the password <code className="text-brand-gold bg-white/5 px-1 rounded font-mono">admin123</code>.
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -698,7 +645,7 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
                         </p>
 
                         <div className="mt-2 text-[10px] font-mono text-brand-gold flex items-center gap-1 opacity-0 group-hover/email:opacity-100 transition-opacity">
-                          <Eye className="w-3 h-3" />
+                          <Eye className="w-3.5 h-3.5" />
                           <span>Open Simulated Email</span>
                         </div>
                       </div>
@@ -712,7 +659,7 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
                     <div className="space-y-1">
                       <h5 className="text-xs font-bold text-white/80">SMTP Inbox Empty</h5>
                       <p className="text-[10px] text-white/40 leading-relaxed font-light">
-                        To test, click <strong className="text-brand-gold">Approve</strong> or <strong className="text-brand-gold">Reject</strong> on the Sandbox Demo film tracker.
+                        To test, change any film's status inside the <strong className="text-brand-gold">Review Desk Dashboard</strong> (Admin Portal) using password <strong className="text-brand-gold">admin123</strong>.
                       </p>
                     </div>
                   </div>
