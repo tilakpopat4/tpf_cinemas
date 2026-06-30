@@ -25,7 +25,7 @@ async function testConnection() {
     console.log('Firebase connection verified.');
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration or network status.');
+      console.log('Firebase connection check: client appears offline (or initialization is pending).');
     } else {
       console.log('Firebase DB initialized, rules or permissions check completed.');
     }
