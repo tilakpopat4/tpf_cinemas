@@ -1,5 +1,5 @@
-import React from 'react';
-import { Play, Plus, Check, Star, Clock, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, Plus, Check, Star, Clock, Globe, X, Trophy } from 'lucide-react';
 import { Film } from '../types';
 
 interface HeroBannerProps {
@@ -10,6 +10,36 @@ interface HeroBannerProps {
 }
 
 export default function HeroBanner({ film, onPlay, isInWatchlist, onToggleWatchlist }: HeroBannerProps) {
+  const [showTrailer, setShowTrailer] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [previewEnded, setPreviewEnded] = useState(false);
+
+  useEffect(() => {
+    let timer: any;
+    if (showTrailer && timeLeft > 0 && !previewEnded) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setPreviewEnded(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showTrailer, timeLeft, previewEnded]);
+
+  const handleOpenTrailer = () => {
+    setShowTrailer(true);
+    setTimeLeft(30);
+    setPreviewEnded(false);
+  };
+
+  const handleCloseTrailer = () => {
+    setShowTrailer(false);
+  };
+
   return (
     <div className="relative w-full h-[70vh] sm:h-[80vh] md:h-[85vh] bg-black overflow-hidden flex items-end">
       
@@ -91,6 +121,15 @@ export default function HeroBanner({ film, onPlay, isInWatchlist, onToggleWatchl
             </button>
 
             <button
+              id="hero-trailer-btn"
+              onClick={handleOpenTrailer}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/20 font-semibold text-sm sm:text-base px-5 py-3.5 rounded-lg transition-all transform hover:scale-105 active:scale-95 cursor-pointer shadow-md"
+            >
+              <Play className="w-4 h-4 text-brand-gold fill-brand-gold" />
+              <span>Play Trailer</span>
+            </button>
+
+            <button
               id="hero-watchlist-btn"
               onClick={() => onToggleWatchlist(film.id)}
               className={`flex items-center gap-2 px-6 py-3.5 rounded-lg font-semibold text-sm sm:text-base border backdrop-blur-xl transition-all ${
@@ -120,6 +159,94 @@ export default function HeroBanner({ film, onPlay, isInWatchlist, onToggleWatchl
 
         </div>
       </div>
+
+      {/* 30-Second Trailer Preview Modal */}
+      {showTrailer && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative w-full max-w-3xl glass-panel rounded-2xl shadow-2xl overflow-hidden border border-brand-gold/30 my-8 animate-fade-in">
+            
+            {/* Header / Close button */}
+            <button
+              onClick={handleCloseTrailer}
+              className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/60 hover:bg-brand-red text-white hover:scale-105 transition-all active:scale-95 cursor-pointer"
+              title="Close Preview"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Video Stage / CUTOFF Screen */}
+            <div className="relative aspect-video w-full bg-black">
+              {!previewEnded ? (
+                <>
+                  <iframe
+                    src={`${film.videoUrl}?autoplay=1&modestbranding=1&rel=0&showinfo=0&controls=0&start=10`}
+                    title={`${film.title} - Preview`}
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                  
+                  {/* Countdown Timer HUD Overlay */}
+                  <div className="absolute top-4 left-4 z-20 flex items-center gap-2.5 bg-black/75 backdrop-blur-md border border-brand-gold/30 px-3.5 py-1.5 rounded-full font-mono text-xs text-white select-none">
+                    <span className="w-2 h-2 rounded-full bg-brand-gold animate-ping" />
+                    <span className="text-brand-gold font-bold">PREVIEW ACTIVE</span>
+                    <span className="text-white/30">|</span>
+                    <span className="text-white font-bold">{timeLeft}s remaining</span>
+                  </div>
+                </>
+              ) : (
+                /* Concluded Screen */
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-b from-[#0D0D0D]/95 to-black p-6 text-center space-y-6">
+                  <div className="w-14 h-14 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center border border-brand-gold/20">
+                    <Trophy className="w-7 h-7 animate-bounce" />
+                  </div>
+                  
+                  <div className="space-y-2 max-w-md">
+                    <h4 className="text-xl font-serif font-bold text-white">
+                      Curated Preview Concluded
+                    </h4>
+                    <p className="text-xs sm:text-sm text-white/60 leading-relaxed font-light">
+                      You've experienced 30 seconds of <strong className="text-white font-medium">"{film.title}"</strong>. Support independent filmmakers by streaming the full 4K high-fidelity master.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => {
+                        handleCloseTrailer();
+                        onPlay(film);
+                      }}
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-gold hover:bg-brand-gold/90 text-[#0D0D0D] font-mono font-bold text-xs uppercase tracking-wider rounded-lg transition-all"
+                    >
+                      <Play className="w-4 h-4 fill-[#0D0D0D]" />
+                      Stream Full Film
+                    </button>
+                    
+                    <button
+                      onClick={handleCloseTrailer}
+                      className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white font-mono text-xs uppercase tracking-wider rounded-lg transition-all"
+                    >
+                      Close Preview
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom film metadata */}
+            <div className="p-5 sm:p-6 bg-[#0E0E0E] border-t border-white/5 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-white font-serif">{film.title}</h4>
+                <p className="text-xs text-white/50">Director: {film.director}</p>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-1 bg-white/5 border border-white/10 text-white/70 uppercase tracking-widest rounded">
+                {film.language} • {film.genre}
+              </span>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

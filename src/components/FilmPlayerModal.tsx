@@ -83,12 +83,6 @@ export default function FilmPlayerModal({ film, onClose, onLike, allFilms, onPla
               <span className="bg-brand-gold/10 text-brand-gold text-xs font-mono font-bold tracking-wider px-2.5 py-1 rounded border border-brand-gold/20 uppercase">
                 ★ Year {film.releaseYear}
               </span>
-              <span className="bg-white/5 text-white/80 text-xs font-mono px-2.5 py-1 rounded border border-white/10">
-                Format: 4K H.264
-              </span>
-              <span className="bg-white/5 text-white/80 text-xs font-mono px-2.5 py-1 rounded border border-white/10">
-                Audio: 5.1 Stereo
-              </span>
             </div>
 
             <div>
