@@ -5,9 +5,19 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   pendingCount: number;
+  firebaseUser?: any;
+  onSignInWithGoogle?: () => void;
+  onSignOut?: () => void;
 }
 
-export default function Navbar({ activeTab, setActiveTab, pendingCount }: NavbarProps) {
+export default function Navbar({ 
+  activeTab, 
+  setActiveTab, 
+  pendingCount, 
+  firebaseUser, 
+  onSignInWithGoogle, 
+  onSignOut 
+}: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   interface NavItem {
@@ -20,8 +30,6 @@ export default function Navbar({ activeTab, setActiveTab, pendingCount }: Navbar
   const navItems: NavItem[] = [
     { id: 'home', label: 'Cinema Hall', icon: Film },
     { id: 'browse', label: 'Browse', icon: Compass },
-    { id: 'hub', label: 'Filmmaker Hub', icon: FileVideo },
-    { id: 'apply', label: 'Submit Film', icon: Send },
     { id: 'profile', label: 'My Watchlist', icon: User },
     { id: 'about', label: 'Our Story', icon: Info },
   ];
@@ -89,6 +97,53 @@ export default function Navbar({ activeTab, setActiveTab, pendingCount }: Navbar
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-gold rounded-full" />
             </button>
+
+            {firebaseUser ? (
+              <div className="flex items-center gap-3 pl-2 border-l border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('profile')}
+                  className="w-9 h-9 rounded-full border border-brand-gold/30 hover:border-brand-gold overflow-hidden transition-all duration-200 cursor-pointer"
+                  title="View Profile / Watchlist"
+                >
+                  {firebaseUser.photoURL ? (
+                    <img
+                      src={firebaseUser.photoURL}
+                      alt={firebaseUser.displayName || 'Google User'}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-brand-gold/10 text-brand-gold flex items-center justify-center font-serif text-sm font-bold">
+                      {(firebaseUser.displayName || firebaseUser.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+                <div className="hidden lg:flex flex-col text-left">
+                  <span className="text-xs font-medium text-white max-w-[120px] truncate">
+                    {firebaseUser.displayName || 'Google Viewer'}
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={onSignOut}
+                    className="text-[10px] text-brand-gold hover:underline font-mono text-left"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onSignInWithGoogle}
+                className="flex items-center gap-2 px-3.5 py-1.5 bg-brand-gold hover:bg-brand-gold/90 text-[#0D0D0D] font-mono font-bold text-[11px] uppercase tracking-wider rounded-lg transition-all hover:scale-[1.02] shadow-md shadow-brand-gold/5 cursor-pointer ml-2 animate-fade-in"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.53-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 5.466 1 0 6.466 0 13.24S5.466 25.48 12.24 25.48c7.073 0 11.79-4.974 11.79-12 0-.814-.08-1.432-.191-2.195H12.24z"/>
+                </svg>
+                <span>Google Sign In</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -106,7 +161,7 @@ export default function Navbar({ activeTab, setActiveTab, pendingCount }: Navbar
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#050505]/85 backdrop-blur-3xl border-b border-white/10 py-4 px-2 space-y-1 animate-fade-in">
+        <div className="md:hidden bg-[#050505]/95 backdrop-blur-3xl border-b border-white/10 py-4 px-2 space-y-1 animate-fade-in">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -136,6 +191,53 @@ export default function Navbar({ activeTab, setActiveTab, pendingCount }: Navbar
               </button>
             );
           })}
+
+          {/* Mobile Auth Indicator */}
+          <div className="border-t border-white/5 pt-3 mt-3 px-2">
+            {firebaseUser ? (
+              <div className="flex items-center justify-between gap-3 p-2 bg-white/[0.02] rounded-xl border border-white/5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full border border-brand-gold/25 overflow-hidden">
+                    {firebaseUser.photoURL ? (
+                      <img src={firebaseUser.photoURL} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full bg-brand-gold/15 text-brand-gold flex items-center justify-center font-bold text-xs font-serif">
+                        {(firebaseUser.displayName || firebaseUser.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{firebaseUser.displayName || 'Google Viewer'}</p>
+                    <p className="text-[10px] text-white/40 truncate">{firebaseUser.email}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSignOut?.();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-2.5 py-1 bg-white/5 border border-white/10 text-white/70 hover:text-white rounded-md text-[10px] font-mono uppercase cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  onSignInWithGoogle?.();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-2.5 py-3 bg-brand-gold hover:bg-brand-gold/90 text-[#0D0D0D] font-mono font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.53-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 5.466 1 0 6.466 0 13.24S5.466 25.48 12.24 25.48c7.073 0 11.79-4.974 11.79-12 0-.814-.08-1.432-.191-2.195H12.24z"/>
+                </svg>
+                <span>Google Sign In</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </nav>

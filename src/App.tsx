@@ -7,9 +7,11 @@ import FilmPlayerModal from './components/FilmPlayerModal';
 import BrowseCatalog from './components/BrowseCatalog';
 import FilmmakerHub from './components/FilmmakerHub';
 import ApplyPortal from './components/ApplyPortal';
+import SubmissionsPage from './components/SubmissionsPage';
 import ProfilePage from './components/ProfilePage';
 import AboutPage from './components/AboutPage';
 import AdminPanel from './components/AdminPanel';
+import ToastNotification, { Toast as EmailToast } from './components/ToastNotification';
 
 import { Film, Submission, UserProfile } from './types';
 import { INITIAL_FILMS, MOCK_SUBMISSIONS } from './data/mockFilms';
@@ -51,6 +53,38 @@ export default function App() {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  // Global Toast Notifications State
+  const [toasts, setToasts] = useState<EmailToast[]>([]);
+
+  const handleCloseToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const triggerEmailToast = (submission: Submission, status: 'approved' | 'rejected', feedback: string) => {
+    const id = `toast-${Date.now()}`;
+    const subject = status === 'approved'
+      ? `[TPF Cinemas] Screening Selection: "${submission.filmTitle}" Approved!`
+      : `[TPF Cinemas] Review Concluded: "${submission.filmTitle}"`;
+    
+    const newToast: EmailToast = {
+      id,
+      title: `[TPF SMTP] Outbound Notice Dispatched`,
+      message: `An official review outcome was sent to ${submission.email} regarding "${submission.filmTitle}". Status: ${status.toUpperCase()}.`,
+      status,
+      recipient: submission.email,
+      filmTitle: submission.filmTitle,
+      feedback,
+      subject
+    };
+
+    setToasts((prev) => [newToast, ...prev]);
+
+    // Auto dismiss after 12 seconds
+    setTimeout(() => {
+      handleCloseToast(id);
+    }, 12000);
+  };
+
   // Keep a local storage sync for session persistence if the user reloads the frame!
   useEffect(() => {
     const savedFilms = localStorage.getItem('tpf_films');
@@ -65,8 +99,11 @@ export default function App() {
 
     // Initial routing based on pathname
     const path = window.location.pathname;
-    const initialTab = path.slice(1) || 'home';
-    const validTabs = ['home', 'browse', 'hub', 'apply', 'profile', 'about', 'admin'];
+    let initialTab = path.slice(1) || 'home';
+    if (initialTab === 'hub' || initialTab === 'apply') {
+      initialTab = 'submissions';
+    }
+    const validTabs = ['home', 'browse', 'submissions', 'profile', 'about', 'admin'];
     if (validTabs.includes(initialTab)) {
       setActiveTab(initialTab);
     }
@@ -88,7 +125,10 @@ export default function App() {
         setActiveTab(event.state.tab);
       } else {
         const path = window.location.pathname;
-        const tab = path.slice(1) || 'home';
+        let tab = path.slice(1) || 'home';
+        if (tab === 'hub' || tab === 'apply') {
+          tab = 'submissions';
+        }
         setActiveTab(tab);
       }
     };
@@ -360,10 +400,16 @@ export default function App() {
     setFilms(updatedFilms);
     setSubmissions(updatedSubs);
     saveToLocalStorage(updatedFilms, updatedSubs, userProfile, selectedQuality);
+
+    // Trigger mock email toast alert
+    triggerEmailToast(activeSub, 'approved', feedback);
   };
 
   // Admin rejects submission
   const handleRejectSubmission = (submissionId: string, feedback: string) => {
+    const activeSub = submissions.find(s => s.id === submissionId);
+    if (!activeSub) return;
+
     const updatedSubs = submissions.map(s => {
       if (s.id === submissionId) {
         return { ...s, status: 'rejected' as const, reviewFeedback: feedback };
@@ -373,6 +419,9 @@ export default function App() {
 
     setSubmissions(updatedSubs);
     saveToLocalStorage(films, updatedSubs, userProfile, selectedQuality);
+
+    // Trigger mock email toast alert
+    triggerEmailToast(activeSub, 'rejected', feedback);
   };
 
   // Change Home Featured Film
@@ -411,6 +460,9 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           pendingCount={pendingCount}
+          firebaseUser={firebaseUser}
+          onSignInWithGoogle={handleSignInWithGoogle}
+          onSignOut={handleSignOut}
         />
 
         {/* Dynamic Tab Swapper */}
@@ -478,17 +530,10 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'hub' && (
-            <FilmmakerHub
-              mySubmissions={submissions.filter(s => s.email === userProfile.email)}
-              onNavigateToApply={() => setActiveTab('apply')}
-            />
-          )}
-
-          {activeTab === 'apply' && (
-            <ApplyPortal
+          {activeTab === 'submissions' && (
+            <SubmissionsPage
               onSubmit={handleSubmitSubmission}
-              onNavigateToHub={() => setActiveTab('hub')}
+              mySubmissions={submissions.filter(s => s.email === userProfile.email)}
             />
           )}
 
@@ -679,6 +724,9 @@ export default function App() {
           onPlayRelated={(relatedFilm) => handlePlayFilm(relatedFilm)}
         />
       )}
+
+      {/* Global Toast Notification System */}
+      <ToastNotification toasts={toasts} onClose={handleCloseToast} />
 
     </div>
   );
