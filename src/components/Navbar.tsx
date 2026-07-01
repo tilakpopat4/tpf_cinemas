@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Film, Search, Compass, FileVideo, User, Info, ShieldCheck, Menu, X, Bell } from 'lucide-react';
+import { Film, Search, Compass, FileVideo, User, Info, ShieldCheck, Menu, X, Bell, Send } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -21,6 +21,7 @@ export default function Navbar({ activeTab, setActiveTab, pendingCount }: Navbar
     { id: 'home', label: 'Cinema Hall', icon: Film },
     { id: 'browse', label: 'Browse', icon: Compass },
     { id: 'hub', label: 'Filmmaker Hub', icon: FileVideo },
+    { id: 'apply', label: 'Submit Film', icon: Send },
     { id: 'profile', label: 'My Watchlist', icon: User },
     { id: 'about', label: 'Our Story', icon: Info },
   ];

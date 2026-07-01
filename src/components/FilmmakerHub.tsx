@@ -16,21 +16,11 @@ interface SimulatedEmail {
 }
 
 interface FilmmakerHubProps {
-  onSubmit: (submission: Omit<Submission, 'id' | 'status' | 'submittedAt'>) => void;
   mySubmissions: Submission[];
+  onNavigateToApply: () => void;
 }
 
-export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubProps) {
-  const [filmTitle, setFilmTitle] = useState('');
-  const [synopsis, setSynopsis] = useState('');
-  const [directorName, setDirectorName] = useState('');
-  const [duration, setDuration] = useState('');
-  const [language, setLanguage] = useState('Hindi');
-  const [genre, setGenre] = useState('Drama');
-  const [videoLink, setVideoLink] = useState('');
-  const [email, setEmail] = useState('');
-  const [submittedId, setSubmittedId] = useState<string | null>(null);
-
+export default function FilmmakerHub({ mySubmissions, onNavigateToApply }: FilmmakerHubProps) {
   // Simulated Email & SMTP State
   const [simulatedEmails, setSimulatedEmails] = useState<SimulatedEmail[]>([]);
   const [activeEmail, setActiveEmail] = useState<SimulatedEmail | null>(null);
@@ -123,37 +113,6 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!filmTitle || !synopsis || !directorName || !duration || !videoLink || !email) {
-      alert('Please fill out all required fields.');
-      return;
-    }
-
-    // Submit up to App state
-    onSubmit({
-      filmTitle,
-      synopsis,
-      directorName,
-      duration,
-      language,
-      genre,
-      videoLink,
-      email,
-    });
-
-    // Clear form
-    setFilmTitle('');
-    setSynopsis('');
-    setDirectorName('');
-    setDuration('');
-    setVideoLink('');
-    setEmail('');
-
-    // Trigger success panel
-    setSubmittedId('success-sub');
   };
 
   return (
@@ -260,231 +219,54 @@ export default function FilmmakerHub({ onSubmit, mySubmissions }: FilmmakerHubPr
       {/* Submission Interaction Block */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
-        {/* Form panel */}
-        <div className="lg:col-span-2 glass-panel p-6 sm:p-8 rounded-2xl space-y-6">
-          {submittedId ? (
-            /* Submission Success Simulator */
-            <div className="space-y-6 text-center py-8 animate-fade-in">
-              <div className="w-16 h-16 bg-brand-gold/10 text-brand-gold rounded-full flex items-center justify-center mx-auto border border-brand-gold/20">
-                <CheckCircle className="w-10 h-10 animate-spin" />
+        {/* Film Apply Portal CTA Panel */}
+        <div className="lg:col-span-2 glass-panel p-6 sm:p-10 rounded-2xl flex flex-col justify-between relative overflow-hidden bg-gradient-to-br from-white/[0.01] to-white/[0.04] border border-white/10 space-y-8">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-brand-gold/5 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-brand-gold/10 rounded-full border border-brand-gold/25 text-brand-gold font-mono text-[10px] font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              <span>Dedicated Submission Space</span>
+            </div>
+            
+            <h3 className="text-2xl sm:text-3xl font-serif font-bold text-white leading-tight">
+              Ready to Showcase Your Film on <span className="text-brand-gold">TPF Cinemas</span>?
+            </h3>
+            
+            <p className="text-sm text-white/60 leading-relaxed font-light">
+              We have launched a dedicated, full-screen **Film Apply Portal** separate from the Filmmaker Hub to give you a clutter-free, immersive application environment. Submit your metadata, synopsis, unlisted streaming files, and review contact information securely.
+            </p>
+
+            <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-white/70">
+              <div className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-gold shrink-0"></span>
+                <span>Zero Entry Fees / 100% Free</span>
               </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-2xl font-serif font-bold text-white">
-                  Film Received via Sandbox SMTP!
-                </h3>
-                <p className="text-sm text-white/60 max-w-md mx-auto">
-                  Your application has been logged on the Tilak Popat Films server and added to our review backlog. An automated acknowledgment is on its way to your inbox.
-                </p>
+              <div className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-gold shrink-0"></span>
+                <span>48-72 Hour Editorial Review</span>
               </div>
-
-              {/* Interactive Submission Tracker */}
-              <div className="bg-white/[0.02] backdrop-blur-md p-5 rounded-xl border border-white/5 text-left max-w-lg mx-auto space-y-5">
-                <h4 className="text-xs font-mono font-bold text-white/40 uppercase tracking-widest">
-                  Live Screening Status Tracker
-                </h4>
-                
-                <div className="space-y-4">
-                  {/* Step 1 */}
-                  <div className="flex gap-3">
-                    <div className="w-5 h-5 rounded-full bg-brand-gold text-[#0D0D0D] text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      ✓
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-white">1. Submission Filed</h5>
-                      <p className="text-[10px] text-white/55">Logged and queued on TPF Admin Panel.</p>
-                    </div>
-                  </div>
-
-                  {/* Step 2 */}
-                  <div className="flex gap-3">
-                    <div className="w-5 h-5 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
-                      2
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-white/60">2. Review Desk Screening</h5>
-                      <p className="text-[10px] text-white/40">Review team reviews synopsis and stream file.</p>
-                    </div>
-                  </div>
-
-                  {/* Step 3 */}
-                  <div className="flex gap-3">
-                    <div className="w-5 h-5 rounded-full bg-white/5 border border-white/10 text-white/40 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      3
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-white/30">3. Decision & Feedback Dispatch</h5>
-                      <p className="text-[10px] text-white/30">Email notification dispatched with feedback.</p>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-gold shrink-0"></span>
+                <span>Retain 100% Rights to Your Film</span>
               </div>
-
-              <div className="pt-4 flex justify-center gap-4">
-                <button
-                  onClick={() => setSubmittedId(null)}
-                  className="px-5 py-2.5 bg-brand-gold text-[#0D0D0D] font-bold rounded-lg text-xs font-mono hover:bg-brand-gold/90 transition-all cursor-pointer"
-                >
-                  Submit Another Film
-                </button>
+              <div className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-gold shrink-0"></span>
+                <span>Real-Time Simulated SMTP Tracker</span>
               </div>
             </div>
-          ) : (
-            /* Actual Submission Form */
-            <form onSubmit={handleFormSubmit} className="space-y-5">
-              <div className="space-y-1">
-                <h3 className="text-xl font-serif font-semibold text-white">
-                  Direct Screening Application
-                </h3>
-                <p className="text-xs text-white/45">
-                  Your entry is routed to the TPF Review dashboard. Fill out details accurately.
-                </p>
-              </div>
+          </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Title */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                    Film Title *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Vazhiyoram"
-                    value={filmTitle}
-                    onChange={(e) => setFilmTitle(e.target.value)}
-                    className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none"
-                  />
-                </div>
-
-                {/* Director */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                    Director Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Anandhu Radhakrishnan"
-                    value={directorName}
-                    onChange={(e) => setDirectorName(e.target.value)}
-                    className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                {/* Duration */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                    Duration (e.g. 24 mins) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="24 mins"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none"
-                  />
-                </div>
-
-                {/* Language */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                    Language *
-                  </label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full bg-neutral-900 border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none cursor-pointer"
-                  >
-                    <option value="Hindi">Hindi</option>
-                    <option value="Malayalam">Malayalam</option>
-                    <option value="Bengali">Bengali</option>
-                    <option value="Tamil">Tamil</option>
-                    <option value="English">English</option>
-                    <option value="Kannada">Kannada</option>
-                    <option value="Marathi">Marathi</option>
-                  </select>
-                </div>
-
-                {/* Genre */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                    Genre *
-                  </label>
-                  <select
-                    value={genre}
-                    onChange={(e) => setGenre(e.target.value)}
-                    className="w-full bg-neutral-900 border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none cursor-pointer"
-                  >
-                    <option value="Drama">Drama</option>
-                    <option value="Thriller">Thriller</option>
-                    <option value="Documentary">Documentary</option>
-                    <option value="Experimental">Experimental</option>
-                    <option value="Comedy">Comedy</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Video URL link */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase block">
-                  Video File / YouTube Link *
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="Paste YouTube Unlisted, Google Drive, or WeTransfer URL"
-                  value={videoLink}
-                  onChange={(e) => setVideoLink(e.target.value)}
-                  className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none"
-                />
-                <span className="text-[10px] text-white/30 italic font-mono block">
-                  ★ Pro Tip: YouTube Unlisted is free, offers unlimited storage and global edge CDN!
-                </span>
-              </div>
-
-              {/* Synopsis */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                  Brief Synopsis (Max 300 words) *
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  placeholder="Describe your film's narrative core, theme, and character drive..."
-                  value={synopsis}
-                  onChange={(e) => setSynopsis(e.target.value)}
-                  className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none resize-none"
-                />
-              </div>
-
-              {/* Contact Email */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono font-bold text-white/60 uppercase">
-                  Contact Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="director@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] backdrop-blur-md border border-white/10 focus:border-brand-gold text-white text-sm rounded-lg px-4 py-3 focus:outline-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-brand-gold hover:bg-brand-gold/90 text-[#0D0D0D] font-bold py-4 rounded-xl transition-all transform hover:scale-[1.01] cursor-pointer"
-              >
-                <Send className="w-5 h-5 text-[#0D0D0D]" />
-                <span>Submit Screening Package</span>
-              </button>
-            </form>
-          )}
+          <div className="pt-4">
+            <button
+              type="button"
+              onClick={onNavigateToApply}
+              className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-brand-gold hover:bg-brand-gold/90 text-[#0D0D0D] font-mono font-bold px-8 py-4 rounded-xl transition-all hover:scale-[1.02] shadow-lg shadow-brand-gold/15 cursor-pointer"
+            >
+              <Send className="w-4 h-4 text-[#0D0D0D]" />
+              <span>Go to Film Apply Portal</span>
+            </button>
+          </div>
         </div>
 
         {/* My logged submissions list on side */}

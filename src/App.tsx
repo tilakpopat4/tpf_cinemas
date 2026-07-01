@@ -6,6 +6,7 @@ import TopTenRow from './components/TopTenRow';
 import FilmPlayerModal from './components/FilmPlayerModal';
 import BrowseCatalog from './components/BrowseCatalog';
 import FilmmakerHub from './components/FilmmakerHub';
+import ApplyPortal from './components/ApplyPortal';
 import ProfilePage from './components/ProfilePage';
 import AboutPage from './components/AboutPage';
 import AdminPanel from './components/AdminPanel';
@@ -65,7 +66,7 @@ export default function App() {
     // Initial routing based on pathname
     const path = window.location.pathname;
     const initialTab = path.slice(1) || 'home';
-    const validTabs = ['home', 'browse', 'hub', 'profile', 'about', 'admin'];
+    const validTabs = ['home', 'browse', 'hub', 'apply', 'profile', 'about', 'admin'];
     if (validTabs.includes(initialTab)) {
       setActiveTab(initialTab);
     }
@@ -479,8 +480,15 @@ export default function App() {
 
           {activeTab === 'hub' && (
             <FilmmakerHub
-              onSubmit={handleSubmitSubmission}
               mySubmissions={submissions.filter(s => s.email === userProfile.email)}
+              onNavigateToApply={() => setActiveTab('apply')}
+            />
+          )}
+
+          {activeTab === 'apply' && (
+            <ApplyPortal
+              onSubmit={handleSubmitSubmission}
+              onNavigateToHub={() => setActiveTab('hub')}
             />
           )}
 
