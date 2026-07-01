@@ -50,6 +50,20 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 /**
+ * Checks if a Firestore error is related to being offline or having network connectivity issues.
+ */
+function isOfflineError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const errMsg = error.message.toLowerCase();
+  return (
+    errMsg.includes('offline') ||
+    errMsg.includes('failed to get document because the client is offline') ||
+    errMsg.includes('unavailable') ||
+    errMsg.includes('network')
+  );
+}
+
+/**
  * Fetches the user profile document from Firestore.
  */
 export async function getFirestoreUserProfile(userId: string): Promise<UserProfile | null> {
@@ -62,6 +76,18 @@ export async function getFirestoreUserProfile(userId: string): Promise<UserProfi
     }
     return null;
   } catch (error) {
+    if (isOfflineError(error)) {
+      console.warn('Firestore is offline during getFirestoreUserProfile. Falling back to local storage profile cache.');
+      const savedProfile = localStorage.getItem('tpf_profile');
+      if (savedProfile) {
+        try {
+          return JSON.parse(savedProfile) as UserProfile;
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    }
     handleFirestoreError(error, OperationType.GET, docPath);
     return null;
   }
@@ -91,6 +117,10 @@ export async function saveFirestoreUserProfile(
       updatedAt: serverTimestamp()
     });
   } catch (error) {
+    if (isOfflineError(error)) {
+      console.warn('Firestore is offline during saveFirestoreUserProfile. Action queued locally by Firebase SDK.');
+      return;
+    }
     handleFirestoreError(error, OperationType.CREATE, docPath);
   }
 }
@@ -107,6 +137,10 @@ export async function updateFirestoreWatchlist(userId: string, watchlistIds: str
       updatedAt: serverTimestamp()
     });
   } catch (error) {
+    if (isOfflineError(error)) {
+      console.warn('Firestore is offline during updateFirestoreWatchlist. Action queued locally by Firebase SDK.');
+      return;
+    }
     handleFirestoreError(error, OperationType.UPDATE, docPath);
   }
 }
@@ -123,6 +157,10 @@ export async function updateFirestoreWatchHistory(userId: string, watchHistory: 
       updatedAt: serverTimestamp()
     });
   } catch (error) {
+    if (isOfflineError(error)) {
+      console.warn('Firestore is offline during updateFirestoreWatchHistory. Action queued locally by Firebase SDK.');
+      return;
+    }
     handleFirestoreError(error, OperationType.UPDATE, docPath);
   }
 }

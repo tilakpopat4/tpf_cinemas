@@ -180,7 +180,13 @@ export default function App() {
             localStorage.setItem('tpf_profile', JSON.stringify(newProfile));
           }
         } catch (error) {
-          console.error('Error syncing user profile:', error);
+          const isOffline = error instanceof Error && 
+            (error.message.toLowerCase().includes('offline') || error.message.toLowerCase().includes('unavailable'));
+          if (isOffline) {
+            console.warn('Network or Firestore offline during profile sync:', error instanceof Error ? error.message : error);
+          } else {
+            console.error('Error syncing user profile:', error);
+          }
         } finally {
           setIsSyncing(false);
         }
@@ -700,16 +706,6 @@ export default function App() {
           <div className="flex flex-col items-center md:items-end text-center md:text-right gap-1 text-[10.5px] font-mono text-white/30">
             <span>Confidential — Tilak Popat Films / TPF Cinemas</span>
             <span>All rights reserved.</span>
-            <button
-              onClick={() => {
-                setActiveTab('admin');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="text-[10px] text-brand-gold hover:text-white hover:underline transition-all font-bold flex items-center gap-1 mt-1 bg-brand-gold/10 px-2.5 py-1 rounded border border-brand-gold/20"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-brand-gold" />
-              Console: tpfcinemas.vercel.app/admin
-            </button>
           </div>
         </div>
       </footer>

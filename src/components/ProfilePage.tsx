@@ -267,26 +267,41 @@ export default function ProfilePage({
               const matchedFilm = films.find(f => f.id === history.filmId);
               if (!matchedFilm) return null;
               return (
-                <div key={history.filmId} className="p-4 sm:p-5 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-10 h-14 bg-neutral-800 rounded overflow-hidden flex-none">
+                <div key={history.filmId} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="w-12 h-16 bg-neutral-800 rounded overflow-hidden flex-none border border-white/10 shadow-inner">
                       <img src={matchedFilm.posterUrl} alt={matchedFilm.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1 space-y-1.5">
                       <h4 className="text-sm font-bold text-white truncate">{matchedFilm.title}</h4>
                       <p className="text-xs text-white/50">{matchedFilm.director} • {matchedFilm.language}</p>
+                      
+                      {/* Mobile Progress Bar (visible on mobile only) */}
+                      <div className="block sm:hidden w-full max-w-xs pt-1">
+                        <div className="flex justify-between text-[10px] font-mono text-white/40 mb-1">
+                          <span>Progress</span>
+                          <span className="text-brand-gold font-bold">{history.progressPercent}%</span>
+                        </div>
+                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-brand-gold to-yellow-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${history.progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
-                    <div className="hidden sm:block w-36">
+                  <div className="flex items-center gap-4 sm:gap-6 justify-between sm:justify-end">
+                    {/* Desktop Progress Bar (visible on tablet/desktop) */}
+                    <div className="hidden sm:block w-44">
                       <div className="flex justify-between text-[10px] font-mono text-white/40 mb-1">
                         <span>Progress</span>
-                        <span>{history.progressPercent}%</span>
+                        <span className="text-brand-gold font-bold">{history.progressPercent}%</span>
                       </div>
                       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-brand-gold rounded-full" 
+                          className="h-full bg-gradient-to-r from-brand-gold to-yellow-500 rounded-full transition-all duration-500" 
                           style={{ width: `${history.progressPercent}%` }}
                         />
                       </div>
@@ -294,7 +309,7 @@ export default function ProfilePage({
 
                     <button
                       onClick={() => onPlay(matchedFilm)}
-                      className="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 text-xs font-mono font-bold text-white border border-white/10 rounded-md transition-all cursor-pointer"
+                      className="px-4 py-1.5 bg-brand-gold/10 hover:bg-brand-gold text-brand-gold hover:text-[#0D0D0D] text-xs font-mono font-bold border border-brand-gold/20 rounded-md transition-all duration-300 cursor-pointer shadow-sm hover:shadow-brand-gold/5"
                     >
                       Resume
                     </button>
